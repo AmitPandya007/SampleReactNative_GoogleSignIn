@@ -19,7 +19,6 @@ public class BulbPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(
             ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
-
         modules.add(new Bulb(reactContext));
 
         return modules;
