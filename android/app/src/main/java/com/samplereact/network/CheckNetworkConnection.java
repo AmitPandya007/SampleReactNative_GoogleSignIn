@@ -12,7 +12,6 @@ import android.util.Log;
 import android.widget.Toast;
 
 import static com.facebook.react.views.textinput.ReactTextInputManager.TAG;
-import static java.lang.annotation.ElementType.PACKAGE;
 
 @SuppressWarnings("deprecation")
 public class CheckNetworkConnection extends BroadcastReceiver {
@@ -42,13 +41,13 @@ public class CheckNetworkConnection extends BroadcastReceiver {
             if (info != null) {
                 for (int i = 0; i < info.length; i++) {
                     if (info[i].getState() == NetworkInfo.State.CONNECTED) {
-                        if(!isConnected){
+                        if (!isConnected) {
                             isConnected = true;
                             PackageManager pm = context.getPackageManager();
                             boolean app = isPackageInstalled(PACKAGE, pm);
-                            if(app){
+                            if (app) {
                                 Log.d(TAG, " method return TURE");
-                            }else {
+                            } else {
                                 Log.d(TAG, " method return FALSER");
                             }
                         }
@@ -56,7 +55,7 @@ public class CheckNetworkConnection extends BroadcastReceiver {
                     }
                 }
             }
-        }else {
+        } else {
             Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
             isConnected = false;
         }
@@ -72,21 +71,20 @@ public class CheckNetworkConnection extends BroadcastReceiver {
             Log.e(TAG, " app found in mobile");
         } catch (PackageManager.NameNotFoundException e) {
             GoogleFitInstallDialog();
-            Toast.makeText(context, "", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(context, "", Toast.LENGTH_SHORT).show();
             found = false;
             Log.e(TAG, " app not found in mobile ----> ");
         }
         return found;
     }
 
-    public void GoogleFitInstallDialog(){
+    public void GoogleFitInstallDialog() {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
         alertDialogBuilder.setMessage("Google fit data not found, Please install Google fit App first and try again.");
         alertDialogBuilder.setPositiveButton("OK",
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface arg0, int arg1) {
-
                     }
                 });
         AlertDialog alertDialog = alertDialogBuilder.create();

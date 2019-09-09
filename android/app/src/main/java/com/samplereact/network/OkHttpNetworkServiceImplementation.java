@@ -4,8 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.StrictMode;
 import android.util.Log;
 
-import com.samplereact.functionality.ActivityFunctionality;
-import com.samplereact.functionality.StepCountsCalculation;
+import com.samplereact.functionality.Steps_Activity_Calculation;
 
 import java.io.IOException;
 import java.net.CookieManager;
@@ -26,7 +25,7 @@ public class OkHttpNetworkServiceImplementation {
     //avoid creating several instances, should be singleton
     private static OkHttpClient client = null;
     private static OkHttpNetworkServiceImplementation instance = null;
-    private int status;
+    public int status;
     //Network Request Format
     private MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private Headers headerbuild;
@@ -49,7 +48,7 @@ public class OkHttpNetworkServiceImplementation {
         setHeaderbuild(header);
 
         client = new OkHttpClient.Builder()
-                .cookieJar(StepCountsCalculation.cookieHelper.cookieJar())
+                .cookieJar(Steps_Activity_Calculation.cookieHelper.cookieJar())
                 .build();
 
         //Post JSON Request And Response
@@ -75,7 +74,7 @@ public class OkHttpNetworkServiceImplementation {
         setHeaderbuild(header);
 
         client = new OkHttpClient.Builder()
-                .cookieJar(StepCountsCalculation.cookieHelper.cookieJar())
+                .cookieJar(Steps_Activity_Calculation.cookieHelper.cookieJar())
                 .build();
 
         //Post JSON Request And Response
@@ -118,7 +117,7 @@ public class OkHttpNetworkServiceImplementation {
         List<HttpCookie> cookieList = cookieManager.getCookieStore().getCookies();
 
         for (int i = 0; i < cookieList.size(); i++) {
-            StepCountsCalculation.cookieHelper.setCookie("https://app.jvbwellness.com/", cookieList.get(i).getName(), cookieList.get(i).getValue());
+            Steps_Activity_Calculation.cookieHelper.setCookie("https://app.jvbwellness.com/", cookieList.get(i).getName(), cookieList.get(i).getValue());
         }
 
         //Print Reponse

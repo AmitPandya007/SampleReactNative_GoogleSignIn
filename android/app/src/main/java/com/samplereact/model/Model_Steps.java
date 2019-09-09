@@ -2,13 +2,13 @@ package com.samplereact.model;
 
 import java.io.Serializable;
 
-public class Model_StepCounter implements Serializable {
+public class Model_Steps implements Serializable {
 
     private int step;
     private String startTime;
     private String endTime;
 
-    public Model_StepCounter(String startTime, String endTime, int step) {
+    public Model_Steps(String startTime, String endTime, int step) {
         this.startTime = startTime;
         this.endTime = endTime;
         this.step = step;

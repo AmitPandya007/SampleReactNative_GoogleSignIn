@@ -18,31 +18,31 @@ constructor(props) {
   this.updateStatus();
 }
 turnOn = () => {
-  NativeModules.Bulb.turnOn();
+  NativeModules.NativeModule_GoogleFit.turnOn();
   this.updateStatus()
 }
 turnOff = () => {
-  NativeModules.Bulb.turnOff();
+  NativeModules.NativeModule_GoogleFit.turnOff();
   this.updateStatus()
 }
 updateStatus = () => {
-  NativeModules.Bulb.getStatus( (error, isOn)=>{
+  NativeModules.NativeModule_GoogleFit.getStatus( (error, isOn)=>{
   this.setState({ isOn: isOn});
 })
 }
 render() {
 return (
 <View style={styles.container}>
-<Text style={styles.welcome}>Welcome to Light App!!</Text>
-<Text> Bulb is {this.state.isOn ? "ON": "OFF"}</Text>
-{!this.state.isOn ? <Button
+{!this.state.isOn ? 
+<Button
+style={styles.buttonContainer}
 onPress={this.turnOn}
-title="Turn ON "
+title="GoogleFit Sync Data On"
 color="#FF6347"
 /> :
 <Button
 onPress={this.turnOff}
-title="Turn OFF "
+title="GoogleFit Sync Data Off"
 color="#FF6347"
 /> }
 </View>
@@ -54,6 +54,14 @@ container: {
 flex: 1,
 justifyContent: 'center',
 alignItems: 'center',
-backgroundColor: '#F5FCFF',
 },
+buttonContainer: {
+height: 45,
+flexDirection: 'row',
+justifyContent: 'center',
+alignItems: 'center',
+marginBottom: 20,
+width: 250,
+borderRadius: 30,
+}
 });

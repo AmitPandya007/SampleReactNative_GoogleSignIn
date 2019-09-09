@@ -1,13 +1,16 @@
 package com.samplereact.functionality;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
+import android.widget.Toast;
 
-import com.facebook.react.bridge.ReactContext;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.fitness.Fitness;
@@ -24,8 +27,7 @@ import com.google.android.gms.fitness.result.DataReadResult;
 import com.google.android.gms.fitness.result.SessionReadResponse;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.samplereact.MainActivity;
-import com.samplereact.model.Model_StepCounter;
+import com.samplereact.model.Model_Steps;
 import com.samplereact.network.OkHttpNetworkServiceImplementation;
 
 import org.json.JSONException;
@@ -41,33 +43,31 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import static com.samplereact.functionality.ActivityFunctionality.activity_jsonform;
 import static java.text.DateFormat.getTimeInstance;
 
 @SuppressWarnings("deprecation")
-public class StepCountsCalculation {
+public class Steps_Activity_Calculation {
 
     private static final String TAG = "Steps class: =>";
-    private int startTime, endTime;
-    private GoogleApiClient mGoogleApiClient;
-    private Model_StepCounter modelStepCounter;
-    private ReactContext context;
-    public static OkHttp3CookieHelper cookieHelper = new OkHttp3CookieHelper();
-    private OkHttpNetworkServiceImplementation okHttpNetworkServiceImplementation = OkHttpNetworkServiceImplementation.getInstance();
-
-    private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
     private static final String random_data = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    private static SecureRandom rnd = new SecureRandom();
+    public static OkHttp3CookieHelper cookieHelper = new OkHttp3CookieHelper();
     public static String summary_id, steps_jsonform, steps_server_data;
     public static String formattedDate;
+    public static String activity_jsonform;
+    private static SecureRandom rnd = new SecureRandom();
+    private int startTime, endTime;
+    private GoogleApiClient mGoogleApiClient;
+    private Model_Steps modelStepCounter;
+    private Context context;
+    private OkHttpNetworkServiceImplementation okHttpNetworkServiceImplementation = OkHttpNetworkServiceImplementation.getInstance();
+    @SuppressLint("SimpleDateFormat")
+    private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
     private ArrayList<String> stepCount_list = new ArrayList<String>();
-    private ArrayList<Model_StepCounter> totalStepsArraylist;
-    private HashMap<String,ArrayList<String>> stepCount_hm = new    HashMap<String, ArrayList<String>>();
-
+    private ArrayList<Model_Steps> totalStepsArraylist;
+    private HashMap<String, ArrayList<String>> stepCount_hm = new HashMap<String, ArrayList<String>>();
     private DateFormat dateFormat, timeFormat;
     private String returnValue = "";
     private String ac_activity_type, ac_start_date, ac_end_date, ac_device_type;
@@ -76,27 +76,34 @@ public class StepCountsCalculation {
     private HashMap<String, ArrayList<String>> activity_hm = new HashMap<String, ArrayList<String>>();
     private ArrayList<String> activity_list = new ArrayList<String>();
     private TimeZone ac_time_zone;
-    private String timeZoneID, activity_server_data,activity_server_data1,activity_server_data2;
-    public static String activity_jsonform;
+    private String timeZoneID, activity_server_data, activity_server_data1, activity_server_data2;
+    private long dur_in_sec;
+    //private Activity currentActivity;
 
-    public StepCountsCalculation(GoogleApiClient mGoogleApiClient, ReactContext context) {
+    public Steps_Activity_Calculation(GoogleApiClient mGoogleApiClient, Context context/*, Activity activity*/) {
         this.mGoogleApiClient = mGoogleApiClient;
         this.context = context;
+//        this.currentActivity = activity;
     }
+    /*    public Steps_Activity_Calculation(GoogleApiClient mGoogleApiClient, Context context*//*, Activity activity*//*) {
+        this.mGoogleApiClient = mGoogleApiClient;
+        this.context = context;
+//        this.currentActivity = activity;
+    }*/
 
     private void send_steps_data_to_server() {
         // to generate a 10 digit random id
         randomIdGenerator(10);
         //Get today's date
         Date today_date = Calendar.getInstance().getTime();
-        Log.e(TAG,"Current time => " + today_date);
+        Log.e(TAG, "Current time => " + today_date);
 
         @SuppressLint("SimpleDateFormat")
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         formattedDate = df.format(today_date);
-        Log.e(TAG,"Current date => " + formattedDate);
+        Log.e(TAG, "Current date => " + formattedDate);
 
-        Log.e(TAG,"steps_Hashmap "+stepCount_hm);
+        Log.e(TAG, "steps_Hashmap " + stepCount_hm);
         steps_server_data = stepCount_hm.toString().replaceAll("=", "");
         steps_jsonform = steps_server_data;
         steps_jsonform = steps_jsonform.substring(1, steps_jsonform.length() - 1);
@@ -114,6 +121,7 @@ public class StepCountsCalculation {
 
             JSONObject jsonObject2 = new JSONObject();
             jsonObject2.put("user", "402");
+
             jsonObject2.put("belong_to", formattedDate);
             jsonObject2.put("summary_id", summary_id);
             jsonObject2.put("data", steps_jsonform);
@@ -141,8 +149,9 @@ public class StepCountsCalculation {
      */
 
     public void readStepountData() {
+        Log.e(TAG, "sign1" + GoogleSignIn.getLastSignedInAccount(context));
         try {
-            Fitness.getHistoryClient(context, Objects.requireNonNull(GoogleSignIn.getLastSignedInAccount(context)))
+            Fitness.getHistoryClient(context, GoogleSignIn.getLastSignedInAccount(mGoogleApiClient.getContext()))
                     .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
                     .addOnSuccessListener(
                             new OnSuccessListener<DataSet>() {
@@ -150,6 +159,7 @@ public class StepCountsCalculation {
                                 @SuppressLint("SetTextI18n")
                                 @Override
                                 public void onSuccess(DataSet dataSet) {
+                                    Log.e(TAG, "sign2" + GoogleSignIn.getLastSignedInAccount(context));
                                     long total = dataSet.isEmpty()
                                             ? 0
                                             : dataSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
@@ -164,10 +174,11 @@ public class StepCountsCalculation {
                             new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
+                                    Log.e(TAG, "sign3" + GoogleSignIn.getLastSignedInAccount(context));
                                     Log.d(TAG, "There was a problem getting the step count.", e);
                                 }
                             });
-        } catch(NullPointerException n) {
+        } catch (NullPointerException n) {
             n.printStackTrace();
         }
     }
@@ -255,17 +266,17 @@ public class StepCountsCalculation {
                     if (field.getName().equals("steps")) {
                         String startTime = dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)) + " " + timeFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS));
                         String endTime = dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)) + " " + timeFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS));
-                        modelStepCounter = new Model_StepCounter(startTime, endTime, stepcount);
+                        modelStepCounter = new Model_Steps(startTime, endTime, stepcount);
                         totalStepsArraylist.add(modelStepCounter);
 
                         if (stepcount != 0) {
                            /* Log.d("History --->", "StartTime: " + modelStepCounter.getStartTime() + "\nEndTime: " + modelStepCounter.getEndTime() + "\nSteps covered: " + modelStepCounter.getStep());
                             Log.d("History --->", "\n");*/
 
-                            stepCount_list.add("{\n"+"\""+"Start date"+"\""+" : "+"\""+simpleDateFormat.format(new Date(modelStepCounter.getStartTime()))+"\""+"\n");
-                            stepCount_list.add("\""+"End date"+"\""+" : "+"\""+simpleDateFormat.format(new Date(modelStepCounter.getEndTime()))+"\""+"\n");
-                            stepCount_list.add("\""+"steps"+"\""+" : "+modelStepCounter.getStep()+"\n"+"}\n");
-                            stepCount_hm.put("",stepCount_list);
+                            stepCount_list.add("{\n" + "\"" + "Start date" + "\"" + " : " + "\"" + simpleDateFormat.format(new Date(modelStepCounter.getStartTime())) + "\"" + "\n");
+                            stepCount_list.add("\"" + "End date" + "\"" + " : " + "\"" + simpleDateFormat.format(new Date(modelStepCounter.getEndTime())) + "\"" + "\n");
+                            stepCount_list.add("\"" + "steps" + "\"" + " : " + modelStepCounter.getStep() + "\n" + "}\n");
+                            stepCount_hm.put("", stepCount_list);
 
                         } else {
 
@@ -283,48 +294,13 @@ public class StepCountsCalculation {
         }
     }
 
-    private String randomIdGenerator(int len){
-        StringBuilder sb = new StringBuilder( len );
-        for( int i = 0; i < len; i++ )
-            sb.append( random_data.charAt( rnd.nextInt(random_data.length()) ) );
-        Log.e(TAG,"random_10_digit_id : "+sb);
+    private String randomIdGenerator(int len) {
+        StringBuilder sb = new StringBuilder(len);
+        for (int i = 0; i < len; i++)
+            sb.append(random_data.charAt(rnd.nextInt(random_data.length())));
+        //Log.e(TAG,"random_10_digit_id : "+sb);
         summary_id = String.valueOf(sb);
         return sb.toString();
-    }
-
-
-    @SuppressLint("StaticFieldLeak")
-    private class CountSteps_Thread extends AsyncTask<Void, Void, Void> {
-        DataReadRequest readRequest;
-        GoogleApiClient mClient;
-        DataSet dataset;
-
-        CountSteps_Thread(DataReadRequest dataReadRequest_, GoogleApiClient googleApiClient, DataSet dataSet) {
-            this.readRequest = dataReadRequest_;
-            this.mClient = googleApiClient;
-            this.dataset = dataSet;
-        }
-
-        @RequiresApi(api = Build.VERSION_CODES.N)
-        @Override
-        protected Void doInBackground(Void... voids) {
-            // Begin by creating the query.
-            DataReadRequest readRequest = queryStepCountData();
-            DataReadResult dataReadResult =
-                    Fitness.HistoryApi.readData(mGoogleApiClient, readRequest).await(1, TimeUnit.MINUTES);
-            if (dataReadResult.getBuckets().size() > 0) {
-                //Log.d("History", "Number of buckets/Active Time Data: " + dataReadResult.getBuckets().size());
-
-                for (Bucket bucket : dataReadResult.getBuckets()) {
-                    List<DataSet> dataSets = bucket.getDataSets();
-                    for (DataSet dataSet : dataSets) {
-                        showReadStepDataResults(dataSet);
-                    }
-                }
-            }
-            send_steps_data_to_server();
-            return null;
-        }
     }
 
     /**
@@ -350,7 +326,7 @@ public class StepCountsCalculation {
         ac_time_zone = TimeZone.getDefault();
         timeZoneID = ac_time_zone.getID();
         // to generate a 10 digit random id
-        randomIdGenerator(10);
+        //randomIdGenerator(10);
 
         /**
          * ===============================================================================================
@@ -407,28 +383,36 @@ public class StepCountsCalculation {
                                             + "-package: " + dataReadResult.getBuckets().get(i).getDataSets().get(j).getDataSource().getAppPackageName()
                                             + ", stream: " + dataReadResult.getBuckets().get(i).getDataSets().get(j).getDataSource().getStreamIdentifier();
                                     returnValue += handleDailyRecordInDataSet(dataReadResult.getBuckets().get(i).getDataSets().get(j));
+                                    //will create random id.
+                                    randomIdGenerator(10);
+                                }
+
+                                //for still acvtivity distance 0
+                                //Add in ActivityTypeDetails Method
+                                if (ac_activity_type.equals("still")) {
+                                    ac_dist = 0;
                                 }
 
 
                                /* if (ac_activity_type != null && ac_start_date != null && ac_end_date != null &&
                                         ac_device_type != null && ac_step != 0 && ac_active_dur != 0 && ac_dist != 0 && ac_calorie != 0) {*/
-                                Log.e(TAG, "activity_type_data \n "
+                                /*Log.e(TAG, "activity_type_data \n "
                                         + "activity_type: " + ac_activity_type + " "
                                         + "start_date: " + ac_start_date + " "
                                         + "end_date: " + ac_end_date + " "
                                         + "device_type: " + ac_device_type + " "
                                         + "steps: " + ac_step + " "
-                                        + "active_duration: " + ac_active_dur + " "
+                                        + "active_duration: " + dur_in_sec + " "
                                         + "distnance: " + ac_dist + " "
                                         + "calorie: " + ac_calorie + " "
-                                        + "time_zone: " + ac_time_zone);
+                                        + "time_zone: " + ac_time_zone);*/
 
                                 activity_list.add("{\n" + "\"WorkoutType\"" + " : " + "\"" + ac_activity_type + "\"" + "\n");
                                 activity_list.add("\"Start date\"" + " : " + "\"" + simpleDateFormat.format(new Date(ac_start_date)) + "\"" + "\n");
                                 activity_list.add("\"End date\"" + " : " + "\"" + simpleDateFormat.format(new Date(ac_end_date)) + "\"" + "\n");
                                 activity_list.add("\"deviceType\"" + " : " + "\"" + ac_device_type + "\"" + "\n");
                                 activity_list.add("\"steps\"" + " : " + String.valueOf(ac_step) + "\n");
-                                activity_list.add("\"Duration\"" + " : " + "\"" + String.valueOf(ac_active_dur) + "\"" + "\n");
+                                activity_list.add("\"Duration\"" + " : " + "\"" + String.valueOf(dur_in_sec) + "\"" + "\n");
                                 activity_list.add("\"Distance\"" + " : " + "\"" + String.valueOf(ac_dist) + "\"" + "\n");
                                 activity_list.add("\"totalEnergyBurned\"" + " : " + "\"" + String.valueOf(ac_calorie) + " kcal" + "\"" + "\n");
                                 activity_list.add("\"TimeZone\"" + " : " + "\"" + String.valueOf(timeZoneID) + "\"" + "\n");
@@ -533,6 +517,7 @@ public class StepCountsCalculation {
 
                     if (field.getName().equals("duration")) {
                         ac_active_dur = dataPoint.getValue(field).asInt();
+                        dur_in_sec = TimeUnit.MILLISECONDS.toSeconds(ac_active_dur);
                     }
 
                     if (field.getName().equals("distance")) {
@@ -549,9 +534,6 @@ public class StepCountsCalculation {
         //Log.e(TAG, "returnValue2 :\n" + returnValue);
         return returnValue;
     }
-
-
-    //----------------------------
 
     private void readSessionsApiAllSessions() {
         SessionReadRequest readRequest = readFitnessSession();
@@ -570,13 +552,13 @@ public class StepCountsCalculation {
                         for (Session session : sessions) {
                             // Process the session
                             dumpSession(session);
-                            Log.e(TAG,"session"+session);
+                            Log.e(TAG, "session" + session);
 
                             // Process the data sets for this session
                             List<DataSet> dataSets = sessionReadResponse.getDataSet(session);
                             for (DataSet dataSet : dataSets) {
                                 dumpDataSet(dataSet);
-                                Log.e(TAG,"dataset"+dataSet);
+                                Log.e(TAG, "dataset" + dataSet);
                             }
                         }
                     }
@@ -589,6 +571,9 @@ public class StepCountsCalculation {
                 });
 
     }
+
+
+    //----------------------------
 
     private SessionReadRequest readFitnessSession() {
 
@@ -641,7 +626,7 @@ public class StepCountsCalculation {
 
             ac_activity_type = dp.getDataType().getName();
 
-            for(Field field : dp.getDataType().getFields()) {
+            for (Field field : dp.getDataType().getFields()) {
                 Log.i(TAG, "\tField: " + field.getName() +
                         " Value: " + dp.getValue(field));
 
@@ -694,6 +679,52 @@ public class StepCountsCalculation {
                 + "\n\tEnd: " + dateFormat.format(session.getEndTime(TimeUnit.MILLISECONDS)));
 
 
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private class CountSteps_Thread extends AsyncTask<Void, Void, Void> {
+        DataReadRequest readRequest;
+        GoogleApiClient mClient;
+        DataSet dataset;
+
+        CountSteps_Thread(DataReadRequest dataReadRequest_, GoogleApiClient googleApiClient, DataSet dataSet) {
+            this.readRequest = dataReadRequest_;
+            this.mClient = googleApiClient;
+            this.dataset = dataSet;
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        @Override
+        protected Void doInBackground(Void... voids) {
+            // Begin by creating the query.
+            DataReadRequest readRequest = queryStepCountData();
+            DataReadResult dataReadResult =
+                    Fitness.HistoryApi.readData(mGoogleApiClient, readRequest).await(1, TimeUnit.MINUTES);
+            if (dataReadResult.getBuckets().size() > 0) {
+                //Log.d("History", "Number of buckets/Active Time Data: " + dataReadResult.getBuckets().size());
+
+                for (Bucket bucket : dataReadResult.getBuckets()) {
+                    List<DataSet> dataSets = bucket.getDataSets();
+                    for (DataSet dataSet : dataSets) {
+                        showReadStepDataResults(dataSet);
+                    }
+                }
+            }
+            send_steps_data_to_server();
+
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (okHttpNetworkServiceImplementation.status == 201 || okHttpNetworkServiceImplementation.status == 200) {
+                        Toast.makeText(context, "Records successfully saved in DataBase. ", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(context, "Problem connecting with server.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }, 500);
+            return null;
+        }
     }
 
     //----------------------------

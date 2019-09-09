@@ -1,4 +1,4 @@
-package com.samplereact;
+package com.samplereact.nativeSection;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class BulbPackage implements ReactPackage {
+public class NativePackage implements ReactPackage {
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
         return Collections.emptyList();
@@ -19,7 +19,7 @@ public class BulbPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(
             ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
-        modules.add(new Bulb(reactContext));
+        modules.add(new NativeModule_GoogleFit(reactContext));
 
         return modules;
     }

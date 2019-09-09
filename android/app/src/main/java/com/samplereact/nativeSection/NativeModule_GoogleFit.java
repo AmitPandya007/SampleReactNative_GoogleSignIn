@@ -1,6 +1,7 @@
-package com.samplereact;
+package com.samplereact.nativeSection;
 
 import android.app.Activity;
+import android.arch.lifecycle.LifecycleObserver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -24,31 +25,35 @@ import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.fitness.Fitness;
-import com.samplereact.functionality.ActivityFunctionality;
-import com.samplereact.functionality.StepCountsCalculation;
+import com.samplereact.functionality.Steps_Activity_Calculation;
 import com.samplereact.network.CheckNetworkConnection;
-import com.samplereact.utils.ServiceCall;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-
-import static java.text.DateFormat.getTimeInstance;
-
-public class Bulb extends ReactContextBaseJavaModule implements
+public class NativeModule_GoogleFit extends ReactContextBaseJavaModule implements
         ActivityEventListener,
+        LifecycleObserver,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
     private static final int REQUEST_OAUTH = 1;
+    public static Boolean isOn = false;
     private static String TAG = "NativeModule: ";
     private boolean authInProgress = false;
     private GoogleApiClient mApiClient;
-    public static Boolean isOn = false;
-    private String GOOGLE_FIT_PACKAGE=  "com.google.android.apps.fitness";
-    private DateFormat dateFormat, timeFormat;
-    private SimpleDateFormat simpleDateFormat;
+    private String GOOGLE_FIT_PACKAGE = "com.google.android.apps.fitness";
 
-    public Bulb(ReactApplicationContext reactContext) {
+    public NativeModule_GoogleFit(ReactApplicationContext reactContext) {
         super(reactContext);
+    }
+
+    @Override
+    public void initialize() {
+        super.initialize();
+        CheckNetworkConnection networkConnection = new CheckNetworkConnection(getReactApplicationContext(),
+                false, GOOGLE_FIT_PACKAGE);
+        if (networkConnection.isNetworkAvailable(getReactApplicationContext())) {
+            mApiClient = googleFitBuild(this, this, getReactApplicationContext());
+        } else {
+            Toast.makeText(getReactApplicationContext(), "No Internet. Please check your Internet.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @ReactMethod
@@ -60,17 +65,18 @@ public class Bulb extends ReactContextBaseJavaModule implements
     @ReactMethod
     public void turnOn() {
         isOn = true;
-        System.out.println("Bulb is turn ON");
-        CheckNetworkConnection networkConnection = new CheckNetworkConnection(getReactApplicationContext(), false,GOOGLE_FIT_PACKAGE);
+        System.out.println("NativeModule_GoogleFit is turn ON");
+        CheckNetworkConnection networkConnection = new CheckNetworkConnection(getReactApplicationContext(),
+                false, GOOGLE_FIT_PACKAGE);
         if (networkConnection.isNetworkAvailable(getReactApplicationContext())) {
             mApiClient = googleFitBuild(this, this, getReactApplicationContext());
             googleFitConnect(getCurrentActivity(), mApiClient);
-        }else {
+        } else {
             Toast.makeText(getReactApplicationContext(), "No Internet. Please check your Internet.", Toast.LENGTH_SHORT).show();
         }
     }
 
-    public GoogleApiClient googleFitBuild
+    private GoogleApiClient googleFitBuild
             (GoogleApiClient.ConnectionCallbacks connectionCallbacks,
              GoogleApiClient.OnConnectionFailedListener failedListener,
              Context applicationContext) {
@@ -94,34 +100,18 @@ public class Bulb extends ReactContextBaseJavaModule implements
     }
 
     //runs an automated Google Fit connect sequence
-    public void googleFitConnect(final Activity activity, final GoogleApiClient mGoogleApiClient) {
+    private void googleFitConnect(final Activity activity, final GoogleApiClient mGoogleApiClient) {
         Log.d(TAG, "google fit connect called");
         if (!mGoogleApiClient.isConnected() && !mGoogleApiClient.isConnecting()) {
             mGoogleApiClient.registerConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                 @Override
                 public void onConnected(Bundle bundle) {
-                    dateFormat = DateFormat.getDateInstance();
-                    timeFormat = getTimeInstance();
-                    //time format
-                    simpleDateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
                     Log.d(TAG, "Google API connected");
                     Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
                     activity.startActivityForResult(signInIntent, 1);
-                    StepCountsCalculation stepCounts = new StepCountsCalculation(mApiClient, getReactApplicationContext()/*, getCurrentActivity()*/);
+
+                    Steps_Activity_Calculation stepCounts = new Steps_Activity_Calculation(mApiClient, getReactApplicationContext());
                     stepCounts.readStepountData();
-                    //stepCounts.readSessionsApiAllSessions();
-
-                    /*ActivityFunctionality activityFunctionality = new ActivityFunctionality(
-                            getReactApplicationContext(), dateFormat, timeFormat, simpleDateFormat);
-                    ServiceCall serviceCall = new ServiceCall();
-                    //activityFunctionality.readSessionsApiAllSessions();
-                    //serviceCall.makenetworkcall();
-                    //readStepountData();*/
-
-                    /*readActiveDurationData();
-                    readDailyDistancetraveledData();
-                    readCaloriesData();*/
-                    //StepCountCheck();
                 }
 
                 @Override
@@ -136,18 +126,19 @@ public class Bulb extends ReactContextBaseJavaModule implements
     @ReactMethod
     public void turnOff() {
         isOn = false;
-        System.out.println("Bulb is turn OFF");
+        System.out.println("NativeModule_GoogleFit is turn OFF");
     }
 
     @Override
     public String getName() {
-        return "Bulb";
+        return "NativeModule_GoogleFit";
     }
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.d(TAG, " Google client is connected. ");
     }
+
 
     @Override
     public void onConnectionSuspended(int i) {
@@ -156,18 +147,17 @@ public class Bulb extends ReactContextBaseJavaModule implements
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        if( !authInProgress ) {
+        if (!authInProgress) {
             try {
                 authInProgress = true;
-                connectionResult.startResolutionForResult( getCurrentActivity(), REQUEST_OAUTH );
-            } catch(IntentSender.SendIntentException e ) {
+                connectionResult.startResolutionForResult(getCurrentActivity(), REQUEST_OAUTH);
+            } catch (IntentSender.SendIntentException e) {
                 Log.e(TAG, "On connectionFailed: " + e.getMessage());
                 e.printStackTrace();
             }
         } else {
-            Log.e( TAG, " authInProgress" );
+            Log.e(TAG, " authInProgress");
         }
-
     }
 
     @Override
@@ -176,7 +166,7 @@ public class Bulb extends ReactContextBaseJavaModule implements
         if (result.isSuccess()) {
             GoogleSignInAccount acct = result.getSignInAccount();
             if (acct != null) {
-             String   displayName = acct.getDisplayName() + "";
+                String displayName = acct.getDisplayName() + "";
                 Log.e(TAG, "google username  : " + displayName);
                 //After You got your data add this to clear the priviously selected mail
                 //mGoogleApiClient.clearDefaultAccountAndReconnect();
