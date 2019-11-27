@@ -85,11 +85,6 @@ public class Steps_Activity_Calculation {
         this.context = context;
 //        this.currentActivity = activity;
     }
-    /*    public Steps_Activity_Calculation(GoogleApiClient mGoogleApiClient, Context context*//*, Activity activity*//*) {
-        this.mGoogleApiClient = mGoogleApiClient;
-        this.context = context;
-//        this.currentActivity = activity;
-    }*/
 
     private void send_steps_data_to_server() {
         // to generate a 10 digit random id
